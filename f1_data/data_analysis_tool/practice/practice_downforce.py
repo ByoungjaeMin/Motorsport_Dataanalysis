@@ -9,24 +9,8 @@ import os
 # Setup
 fastf1.plotting.setup_mpl()
 
-# [2025 Season Custom Colors]
-CUSTOM_COLORS = {
-    'VER': '#0600EF', 'TSU': '#0600EF', 
-    'LEC': '#E8002D', 'HAM': '#E8002D',
-    'NOR': '#FF8000', 'PIA': '#FF8000',
-    'RUS': '#00D2BE', 'ANT': '#00D2BE',
-    'ALO': '#229971', 'STR': '#229971',
-    'GAS': '#0093CC', 'DOO': '#0093CC', 'COL': '#0093CC',
-    'ALB': '#64C4FF', 'SAI': '#64C4FF',
-    'LAW': '#6692FF', 'HAD': '#6692FF',
-    'HUL': '#52E252', 'BOR': '#52E252',
-    'OCO': '#B6BABD', 'BEA': '#B6BABD',
-}
-
-def get_team_color_safe(team, drv, session):
-    if drv in CUSTOM_COLORS: return CUSTOM_COLORS[drv]
-    try: return fastf1.plotting.get_team_color(team, session=session)
-    except: return 'gray'
+from practice.f1_colors import get_driver_color, get_driver_style
+from practice.save_utils import make_filename, save_figure
 
 def analyze_grid_aero(session):
     """
@@ -68,7 +52,7 @@ def analyze_grid_aero(session):
             # Sort by Avg Speed descending and pick the first one
             best_drv = sorted(drivers_in_team, key=lambda x: x['AvgSpeed'], reverse=True)[0]
             
-            color = get_team_color_safe(team, best_drv['Driver'], session)
+            color = get_driver_color(session, best_drv['Driver'])
             
             team_stats.append({
                 'Team': team,
@@ -160,12 +144,6 @@ def analyze_grid_aero(session):
     ax.tick_params(colors='white')
 
     # Save
-    save_dir = 'Saved_photos'
-    if not os.path.exists(save_dir): os.makedirs(save_dir)
-    filename = f"{session.event.year}_{session.event.EventName.replace(' ', '_')}_{session.name}_Downforce_Dark.png"
-    save_path = os.path.join(save_dir, filename)
-    
-    plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='#1e1e1e')
-    print(f"[System] Image saved to: {save_path}")
-    plt.show()
+    filename = make_filename(session, suffix='Downforce_Dark')
+    save_figure(fig, filename, facecolor='#1e1e1e', show=True)
     plt.style.use('default')

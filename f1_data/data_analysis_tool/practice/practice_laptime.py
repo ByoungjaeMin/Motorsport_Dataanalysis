@@ -9,47 +9,11 @@ import os
 # Setup FastF1 plotting
 fastf1.plotting.setup_mpl()
 
+from practice.f1_colors import get_driver_color, get_driver_style
+from practice.save_utils import make_filename, save_figure
+
 # [2025 Season Custom Colors]
-CUSTOM_COLORS = {
-    # Red Bull Racing (Deep Blue)
-    'VER': '#0600EF', 'TSU': '#0600EF', 
-
-    # Ferrari (Scuderia Red)
-    'LEC': '#E8002D', 'HAM': '#E8002D',
-
-    # McLaren (Papaya Orange)
-    'NOR': '#FF8000', 'PIA': '#FF8000',
-
-    # Mercedes (Petronas Cyan / Silver)
-    'RUS': '#00D2BE', 'ANT': '#00D2BE',
-
-    # Aston Martin (British Racing Green)
-    'ALO': '#229971', 'STR': '#229971',
-
-    # Alpine (Alpine Blue / Pink)
-    'GAS': '#0093CC', 'DOO': '#0093CC', 'COL': '#0093CC',
-
-    # Williams (Williams Blue)
-    'ALB': '#64C4FF', 'SAI': '#64C4FF',
-
-    # RB / VCARB (Blue & White)
-    'LAW': '#6692FF', 'HAD': '#6692FF',
-
-    # Sauber / Kick (Neon Green)
-    'HUL': '#52E252', 'BOR': '#52E252',
-
-    # Haas (Red, White, Black)
-    'OCO': '#B6BABD', 'BEA': '#B6BABD',
-}
-
-def get_driver_color_safe(abb, session):
-    """Helper to get driver color safely"""
-    if abb in CUSTOM_COLORS:
-        return CUSTOM_COLORS[abb]
-    try:
-        return fastf1.plotting.get_driver_color(abb, session=session)
-    except:
-        return 'gray'
+# Use central color mapping from practice.f1_colors
 
 def plot_lap_gap_dark(session):
     """
@@ -67,7 +31,7 @@ def plot_lap_gap_dark(session):
             lap = session.laps.pick_drivers(drv).pick_fastest()
             
             if pd.notna(lap['LapTime']):
-                color = get_driver_color_safe(abb, session)
+                color = get_driver_color(session, abb)
                 results.append({
                     'Driver': abb,
                     'LapTime': lap['LapTime'],
@@ -121,13 +85,8 @@ def plot_lap_gap_dark(session):
             label = f"{minutes:02d}:{remainder:02d}.{t.microseconds // 1000:03d}"
         ax.text(bar.get_width() + 0.02, bar.get_y() + bar.get_height()/2, 
                 label, va='center', fontsize=10, color='white', fontweight='bold')
-
-    save_dir = 'Saved_photos'
-    if not os.path.exists(save_dir): os.makedirs(save_dir)
-    filename = f"{session.event.year}_{session.event.EventName.replace(' ', '_')}_{session.name}_LapDelta_Dark.png"
-    save_path = os.path.join(save_dir, filename)
-    plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor=fig.get_facecolor())
-    print(f"[System] Lap Delta saved to: {save_path}")
+    filename = make_filename(session, suffix='LapDelta_Dark')
+    save_figure(fig, filename, facecolor=fig.get_facecolor(), show=False)
     plt.style.use('default') 
 
 def plot_sector_ranking(session):
@@ -145,7 +104,7 @@ def plot_sector_ranking(session):
         try:
             driver_info = session.get_driver(drv)
             abb = driver_info['Abbreviation']
-            color = get_driver_color_safe(abb, session)
+            color = get_driver_color(session, abb)
             laps = session.laps.pick_drivers(drv)
             
             s1 = laps['Sector1Time'].min()
@@ -169,7 +128,7 @@ def plot_sector_ranking(session):
     
     sectors = [('Sector 1', s1_df), ('Sector 2', s2_df), ('Sector 3', s3_df)]
     fig.suptitle(f"FASTEST SECTOR TIMES IN {session.event.year} {session.event.EventName} {session.name}".upper(), 
-                 fontsize=20, fontweight='bold', color='white', y=0.96)
+                 fontsize=20, fontweight='bold', color='white', y=0.90)
 
     for i, (title, df) in enumerate(sectors):
         ax = axes[i]
@@ -231,14 +190,10 @@ def plot_sector_ranking(session):
         ax.set_ylim(0, 22)
 
     plt.tight_layout()
-    plt.subplots_adjust(top=0.9)
+    plt.subplots_adjust(top=0.75)
     
-    save_dir = 'Saved_photos'
-    if not os.path.exists(save_dir): os.makedirs(save_dir)
-    filename = f"{session.event.year}_{session.event.EventName.replace(' ', '_')}_{session.name}_SectorRanks.png"
-    save_path = os.path.join(save_dir, filename)
-    plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='black')
-    print(f"[System] Sector Ranks saved to: {save_path}")
+    filename = make_filename(session, suffix='SectorRanks')
+    save_figure(fig, filename, facecolor='black', show=False)
     plt.style.use('default')
 
 def analyze_all_drivers(session):

@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 import fastf1
 import os
 import pandas
+import seaborn
 
 from practice import practice_export 
 from practice import practice_downforce
@@ -19,7 +19,7 @@ def load_session_data():
     Prompts user for session details and loads the FastF1 session.
     """
     print("========================================")
-    print("       F1 Grid Analysis Tool v4         ")
+    print("       F1 Grid Analysis Tool         ")
     print("========================================")
     
     try:

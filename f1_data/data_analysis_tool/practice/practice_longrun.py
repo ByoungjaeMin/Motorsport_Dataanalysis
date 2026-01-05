@@ -10,24 +10,8 @@ import os
 # Setup FastF1 plotting
 fastf1.plotting.setup_mpl()
 
-# [2025 Season Custom Colors]
-CUSTOM_COLORS = {
-    'VER': '#0600EF', 'TSU': '#0600EF', 
-    'LEC': '#E8002D', 'HAM': '#E8002D',
-    'NOR': '#FF8000', 'PIA': '#FF8000',
-    'RUS': '#00D2BE', 'ANT': '#00D2BE',
-    'ALO': '#229971', 'STR': '#229971',
-    'GAS': '#0093CC', 'DOO': '#0093CC', 'COL': '#0093CC',
-    'ALB': '#64C4FF', 'SAI': '#64C4FF',
-    'LAW': '#6692FF', 'HAD': '#6692FF',
-    'HUL': '#52E252', 'BOR': '#52E252',
-    'OCO': '#B6BABD', 'BEA': '#B6BABD',
-}
-
-def get_driver_color_safe(abb, session):
-    if abb in CUSTOM_COLORS: return CUSTOM_COLORS[abb]
-    try: return fastf1.plotting.get_driver_color(abb, session=session)
-    except: return 'gray'
+from practice.f1_colors import get_driver_color, get_driver_style
+from practice.save_utils import make_filename, save_figure
 
 def style_dark_plot(fig, ax):
     """Apply consistent dark theme"""
@@ -82,7 +66,7 @@ def analyze_long_runs(session):
                     # Check length again after cleaning
                     if len(clean_stint) >= 5:
                         compound = clean_stint['Compound'].iloc[0]
-                        color = get_driver_color_safe(abb, session)
+                        color = get_driver_color(session, abb)
                         
                         # 3. Relative Lap Count (1, 2, 3...) for X-axis alignment
                         clean_stint = clean_stint.reset_index(drop=True)
@@ -105,9 +89,6 @@ def analyze_long_runs(session):
 
     df = pd.DataFrame(long_run_data)
     
-    # Save Directory
-    save_dir = 'Saved_photos'
-    if not os.path.exists(save_dir): os.makedirs(save_dir)
     base_filename = f"{session.event.year}_{session.event.EventName.replace(' ', '_')}_{session.name}"
 
     # Palette
@@ -151,9 +132,8 @@ def analyze_long_runs(session):
     ax1.set_xlabel("Laps into Stint", fontsize=12) # Changed label
 
     # Save Graph 1
-    save_path1 = os.path.join(save_dir, f"{base_filename}_Longrun_Trend.png")
-    plt.savefig(save_path1, dpi=300, bbox_inches='tight', facecolor='#1e1e1e')
-    print(f"[System] Trend graph saved to: {save_path1}")
+    filename1 = make_filename(session, suffix='Longrun_Trend')
+    save_figure(fig1, filename1, facecolor='#1e1e1e', show=False)
 
 
     # =================================================================
@@ -201,9 +181,8 @@ def analyze_long_runs(session):
     ax2.set_xlabel("Driver (Compound) (Laps)", fontsize=12)
 
     # Save Graph 2
-    save_path2 = os.path.join(save_dir, f"{base_filename}_Longrun_Consistency.png")
-    plt.savefig(save_path2, dpi=300, bbox_inches='tight', facecolor='#1e1e1e')
-    print(f"[System] Consistency graph saved to: {save_path2}")
+    filename2 = make_filename(session, suffix='Longrun_Consistency')
+    save_figure(fig2, filename2, facecolor='#1e1e1e', show=False)
 
     # Show All
     print("[System] Displaying graphs...")

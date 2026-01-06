@@ -2,6 +2,14 @@ import fastf1
 import os
 import pandas
 import seaborn
+import shutil
+
+# `keyboard` is optional on some platforms (may require privileges on macOS).
+try:
+    import keyboard
+    KEYBOARD_AVAILABLE = True
+except Exception:
+    KEYBOARD_AVAILABLE = False
 
 from practice import practice_export 
 from practice import practice_downforce
@@ -41,10 +49,43 @@ def load_session_data():
         print(f"[Error] Failed to download/load session: {e}")
         return None
 
+def clear_saved_photos():
+    """
+    Clears all files and subdirectories inside the Saved_photos folder.
+    """
+    # Saved_photos is located at repository root alongside data_analysis_tool
+    saved_photos_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Saved_photos')
+
+    if not os.path.exists(saved_photos_path):
+        print(f"[Warning] Saved_photos directory not found at {saved_photos_path}")
+        return
+
+    try:
+        items_deleted = 0
+        for name in os.listdir(saved_photos_path):
+            path = os.path.join(saved_photos_path, name)
+            if os.path.isfile(path) or os.path.islink(path):
+                os.remove(path)
+                items_deleted += 1
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+                items_deleted += 1
+
+        print(f"[System] Deleted {items_deleted} item(s) from Saved_photos.")
+    except Exception as e:
+        print(f"[Error] Failed to clear Saved_photos: {e}")
+
 def main():
     session = load_session_data()
     if session is None:
         return
+    print("\n[Tip] Press 'c' in the menu to clear Saved_photos.")
+    if KEYBOARD_AVAILABLE:
+        try:
+            keyboard.add_hotkey('c', clear_saved_photos)
+            print("[System] Global hotkey 'c' registered (keyboard module).")
+        except Exception as e:
+            print(f"[Warning] Could not register global hotkey: {e}")
 
     while True:
         print("\n---------------- MENU ----------------")
@@ -53,6 +94,7 @@ def main():
         print("3. Export Data")
         print("4. Downforce Map")
         print("5. Long Runs")
+        print("c. Clear Saved_photos")
         print("q. Quit")
         
         choice = input("Select >> ")
@@ -74,7 +116,22 @@ def main():
         elif choice == '5':
             practice_longrun.analyze_long_runs(session)
             
-        elif choice.lower() == 'q':
+        elif choice == 'c':
+            clear_saved_photos()
+            
+        elif choice == 'q':
+            print("Exiting...")
+            print("Cleaning up cache...")
+            try:
+                # disable fastf1 cache and delete cache folder
+                fastf1.Cache.clear_cache('cache') 
+                # or delete entire cache folder
+                if os.path.exists('cache'):
+                    shutil.rmtree('cache')
+                    print("[System] Cache deleted successfully.")
+            except Exception as e:
+                print(f"[Warning] Could not delete cache: {e}")
+
             print("Exiting...")
             break
         else:

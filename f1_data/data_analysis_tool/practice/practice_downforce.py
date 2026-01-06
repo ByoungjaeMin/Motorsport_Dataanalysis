@@ -145,5 +145,5 @@ def analyze_grid_aero(session):
 
     # Save
     filename = make_filename(session, suffix='Downforce_Dark')
-    save_figure(fig, filename, facecolor='#1e1e1e', show=True)
+    save_figure(fig, filename, facecolor='#1e1e1e', show=False)
     plt.style.use('default')

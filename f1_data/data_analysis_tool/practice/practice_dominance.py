@@ -15,8 +15,17 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 pd.options.mode.chained_assignment = None 
 
 # Custom Colors (Team/Driver mappings)
-from practice.f1_colors import get_driver_color, get_driver_style
-from practice.save_utils import make_filename, save_figure
+# practice 폴더가 없거나 모듈 경로가 다르면 에러가 날 수 있으니 주의하세요.
+try:
+    from practice.f1_colors import get_driver_color, get_driver_style
+    from practice.save_utils import make_filename, save_figure
+except ImportError:
+    # Fallback if modules are missing (Test purposes)
+    def get_driver_color(session, driver): return fastf1.plotting.driver_color(driver)
+    def get_driver_style(driver): return {}
+    def make_filename(session, suffix): return f"{session.event.year}_{session.event.EventName}_{suffix}.png"
+    def save_figure(fig, filename, dpi=300, show=False, tight_rect=None): 
+        fig.savefig(filename, dpi=dpi, bbox_inches='tight' if tight_rect is None else None)
 
 # =========================================================
 # 1. Helper Functions
@@ -138,10 +147,6 @@ def plot_track_dominance(session):
     # Event metadata
     event_name = session.event.EventName
     year = session.event.year
-    # Ensure standardized save directory exists (handled by save_figure)
-
-    # Standardized base filename prefix: Year_GrandPrix_session_practice_domination
-    base_prefix = f"{year}_{event_name.replace(' ', '_')}_{session.name}_practice_domination"
 
     # =========================================================
     # 3. [Graph 1] Comprehensive Dashboard
@@ -155,7 +160,6 @@ def plot_track_dominance(session):
         tel_26 = bestlap_26.get_telemetry().add_distance()
 
         # Calculate Deltas
-        # [FIXED] Changed 'ff1.utils' to 'fastf1.utils'
         delta_t_ver_nor, ref_tel_ver_nor, comp_tel_ver_nor = fastf1.utils.delta_time(bestlap_24, bestlap_25)
         delta_t_sai_nor, ref_tel_sai_nor, comp_tel_sai_nor = fastf1.utils.delta_time(bestlap_24, bestlap_26)
 
@@ -165,7 +169,7 @@ def plot_track_dominance(session):
         delta_sai_nor_interpolated = np.interp(orig_distance, ref_tel_sai_nor['Distance'], delta_t_sai_nor.fillna(0))
 
         # Setup Layout
-        fig = plt.figure(figsize=(15, 20))
+        fig = plt.figure(figsize=(15, 20), facecolor='#1e1e1e')
         gs = fig.add_gridspec(6, 1, height_ratios=[1.5, 1, 1, 1, 1, 1])
         ax_map = fig.add_subplot(gs[0])
         ax_speed = fig.add_subplot(gs[1])
@@ -258,6 +262,7 @@ def plot_track_dominance(session):
         minor_ticks = np.arange(0, track_end_dist, 250)
 
         for ax in [ax_speed, ax_throttle, ax_brake, ax_gear, ax_delta]:
+            ax.set_facecolor('#1e1e1e')
             ax.set_xticks(major_ticks)
             ax.set_xticks(minor_ticks, minor=True)
             ax.grid(which='major', axis='x', linestyle=':', linewidth=0.5, color='#888888')
@@ -266,14 +271,13 @@ def plot_track_dominance(session):
                 ax.axvline(s1_dist, color='grey', linestyle='--', linewidth=1.0)
                 ax.axvline(s2_dist, color='grey', linestyle='--', linewidth=1.0)
 
-        # Sector Background Colors (Based on Fastest Sector)
+        # Sector Background Colors
         if s1_dist and s2_dist:
             laps_list = [bestlap_24, bestlap_25, bestlap_26]
             colors_list = [color_24, color_25, color_26]
 
             def get_fastest_color(sector_attr):
                 times = [getattr(lap, sector_attr) for lap in laps_list]
-                # Handle None times
                 valid_times = [t for t in times if t is not None]
                 if not valid_times: return 'grey'
                 min_t = min(valid_times)
@@ -294,9 +298,10 @@ def plot_track_dominance(session):
             ax_speed.text((s1_dist+s2_dist)/2, y_pos, 'S2', ha='center', color='white', fontweight='bold')
             ax_speed.text((s2_dist+track_end_dist)/2, y_pos, 'S3', ha='center', color='white', fontweight='bold')
 
-        # Save Dashboard (centralized)
+        # [MODIFIED] Save Dashboard (show=False)
         filename_dash = f"{session.event.year}_{event_name.replace(' ','_')}_Dashboard.png"
-        save_figure(fig, filename_dash, dpi=300, show=True, tight_rect=[0, 0, 1, 0.98])
+        save_figure(fig, filename_dash, dpi=300, show=False, tight_rect=[0, 0, 1, 0.98])
+        plt.close(fig) # Memory cleanup
 
     except Exception as e:
         print(f"[Error] Graph 1 Failed: {e}")
@@ -329,7 +334,7 @@ def plot_track_dominance(session):
 
     except Exception as e:
         print(f"[Error] Data Calculation Failed: {e}")
-        return # Exit if data calculation fails
+        return
 
     # =========================================================
     # 5. [Graph 2] Top Speed Comparison
@@ -339,7 +344,8 @@ def plot_track_dominance(session):
         speeds = [max_speed_24, max_speed_25, max_speed_26]
         colors = [color_24, color_25, color_26]
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(10, 6), facecolor='#1e1e1e')
+        ax.set_facecolor('#1e1e1e')
         bars = ax.bar(drivers, speeds, color=colors)
         ax.set_title('Top Speed Comparison (Fastest Lap)', fontsize=16)
         ax.set_ylabel('Top Speed (km/h)')
@@ -350,8 +356,11 @@ def plot_track_dominance(session):
             ax.text(bar.get_x() + bar.get_width()/2.0, height + 0.5, f'{height:.1f}', ha='center', va='bottom', fontsize=12)
 
         plt.grid(axis='y', linestyle='--', alpha=0.3)
+        
+        # [MODIFIED] show=False
         filename = make_filename(session, suffix='TopSpeed')
-        save_figure(fig, filename, dpi=300, show=True)
+        save_figure(fig, filename, dpi=300, show=False)
+        plt.close(fig) # Memory cleanup
     except Exception as e:
         print(f"[Error] Graph 2 Failed: {e}")
 
@@ -364,7 +373,9 @@ def plot_track_dominance(session):
         data_25 = df_sections[bestlap_25.Driver]
         data_26 = df_sections[bestlap_26.Driver]
 
-        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8), facecolor='#1e1e1e')
+        for ax in axes.flat:
+            ax.set_facecolor('#1e1e1e')
         fig.suptitle('% of Lap Time Analysis', fontsize=18)
 
         drivers_list = [bestlap_24.Driver, bestlap_25.Driver, bestlap_26.Driver]
@@ -390,8 +401,10 @@ def plot_track_dominance(session):
             
             ax.grid(axis='y', linestyle='--', alpha=0.3)
 
+        # [MODIFIED] show=False
         filename = make_filename(session, suffix='DrivingStyle')
-        save_figure(fig, filename, dpi=300, show=True, tight_rect=[0, 0.03, 1, 0.95])
+        save_figure(fig, filename, dpi=300, show=False, tight_rect=[0, 0.03, 1, 0.95])
+        plt.close(fig) # Memory cleanup
     except Exception as e:
         print(f"[Error] Graph 3 Failed: {e}")
 
@@ -407,7 +420,8 @@ def plot_track_dominance(session):
         colors_bottom = [color_24, color_25, color_26] 
         colors_top = ['orange', 'cyan', 'lime'] # Distinct colors for delta
 
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(10, 7), facecolor='#1e1e1e')
+        ax.set_facecolor('#1e1e1e')
         ax.bar(categories, drs_off_speeds, label='DRS Off', color=colors_bottom, alpha=0.7)
         ax.bar(categories, drs_deltas, bottom=drs_off_speeds, label='DRS Delta', color=colors_top)
 
@@ -426,14 +440,16 @@ def plot_track_dominance(session):
             delta = drs_deltas[i]
             
             delta_pos = off_speed + (delta / 2) if delta > 0 else off_speed
-            off_pos = off_speed / 2 if off_speed > 0 else 0
+            off_pos = off_speed - 2 
 
-            ax.text(cat, on_speed + 1, f"{on_speed:.0f}", ha='center', va='bottom', fontsize=12, weight='bold')
-            ax.text(cat, delta_pos, f"[+{delta:.0f}]", ha='center', va='center', fontsize=11, color='black') 
-            ax.text(cat, off_pos, f"{off_speed:.0f}", ha='center', va='center', fontsize=11, color='white')
-
+            ax.text(cat, on_speed + 1, f"{on_speed:.0f}", ha='center', va='bottom', fontsize=12, weight='bold', color='white')
+            ax.text(cat, delta_pos, f"[+{delta:.0f}]", ha='center', va='center', fontsize=11, color='black', fontweight='bold') 
+            ax.text(cat, off_pos, f"{off_speed:.0f}", ha='center', va='top', fontsize=11, color='white', fontweight='bold')
         plt.grid(axis='y', linestyle='--', alpha=0.3)
+        
+        # [MODIFIED] show=False
         filename = make_filename(session, suffix='DRS')
-        save_figure(fig, filename, dpi=300, show=True)
+        save_figure(fig, filename, dpi=300, show=False)
+        plt.close(fig) # Memory cleanup
     except Exception as e:
         print(f"[Error] Graph 4 Failed: {e}")

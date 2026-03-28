@@ -23,7 +23,7 @@ except ImportError:
 # ==========================================
 # 1. Lap Delta Analysis (Gap to Leader)
 # ==========================================
-def plot_lap_gap_dark(session):
+def plot_lap_gap(session):
     """
     Calculates and plots the gap to the leader for the fastest lap of each driver.
     """
@@ -47,7 +47,7 @@ def plot_lap_gap_dark(session):
                     'LapTime': lap['LapTime'],
                     'Color': color
                 })
-        except:
+        except Exception:
             continue
     
     if not results:
@@ -60,32 +60,30 @@ def plot_lap_gap_dark(session):
     p1_time = df.loc[0, 'LapTime']
     df['Gap'] = (df['LapTime'] - p1_time).dt.total_seconds()
     
-    # Plot settings (Dark Theme)
-    plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(12, 8))
-    fig.patch.set_facecolor('#1e1e1e')
-    ax.set_facecolor('#1e1e1e')
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
 
     # Horizontal Bar Chart
     bars = ax.barh(df.index, df['Gap'], color=df['Color'], edgecolor='white', linewidth=0.5)
-    
+
     # Axis formatting
     ax.invert_yaxis()
     ax.set_yticks(df.index)
-    ax.set_yticklabels(df['Driver'], fontsize=12, fontweight='bold', color='white')
-    ax.set_xlabel("Gap to Leader (seconds)", color='white', fontsize=11)
-    
+    ax.set_yticklabels(df['Driver'], fontsize=12, fontweight='bold', color='black')
+    ax.set_xlabel("Gap to Leader (seconds)", color='black', fontsize=11)
+
     session_name = f"{session.event.year} {session.event.EventName} {session.name}"
-    ax.set_title(f"{session_name} - Lap Delta", fontsize=16, fontweight='bold', color='white', pad=20)
-    
+    ax.set_title(f"{session_name} - Lap Delta", fontsize=16, fontweight='bold', color='black', pad=20)
+
     # Styling
-    ax.grid(axis='x', linestyle='--', alpha=0.3, color='white')
+    ax.grid(axis='x', linestyle='--', alpha=0.3, color='gray')
     ax.grid(axis='y', visible=False)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_color('white')
-    ax.spines['left'].set_color('white')
-    ax.tick_params(colors='white')
+    ax.spines['bottom'].set_color('black')
+    ax.spines['left'].set_color('black')
+    ax.tick_params(colors='black')
 
     # Add text labels
     for i, bar in enumerate(bars):
@@ -96,13 +94,12 @@ def plot_lap_gap_dark(session):
             t = df.loc[i, 'LapTime']
             minutes, remainder = divmod(t.seconds, 60)
             label = f"{minutes:02d}:{remainder:02d}.{t.microseconds // 1000:03d}"
-        
-        ax.text(bar.get_width() + 0.02, bar.get_y() + bar.get_height()/2, 
-                label, va='center', fontsize=10, color='white', fontweight='bold')
-    
-    filename = make_filename(session, suffix='LapDelta_Dark')
-    save_figure(fig, filename, facecolor=fig.get_facecolor(), show=False)
-    plt.style.use('default') 
+
+        ax.text(bar.get_width() + 0.02, bar.get_y() + bar.get_height()/2,
+                label, va='center', fontsize=10, color='black', fontweight='bold')
+
+    filename = make_filename(session, suffix='LapDelta')
+    save_figure(fig, filename, facecolor='white', show=False)
 
 # ==========================================
 # 2. Sector Ranking Analysis
@@ -131,7 +128,7 @@ def plot_sector_ranking(session):
             if pd.notna(s1): s1_data.append({'Driver': abb, 'Time': s1, 'Color': color})
             if pd.notna(s2): s2_data.append({'Driver': abb, 'Time': s2, 'Color': color})
             if pd.notna(s3): s3_data.append({'Driver': abb, 'Time': s3, 'Color': color})
-        except:
+        except Exception:
             continue
 
     s1_df = pd.DataFrame(s1_data).sort_values('Time').reset_index(drop=True)
@@ -139,18 +136,17 @@ def plot_sector_ranking(session):
     s3_df = pd.DataFrame(s3_data).sort_values('Time').reset_index(drop=True)
 
     # Plot Setup
-    plt.style.use('dark_background')
     fig, axes = plt.subplots(1, 3, figsize=(18, 11))
-    fig.patch.set_facecolor('black')
-    
+    fig.patch.set_facecolor('white')
+
     sectors = [('Sector 1', s1_df), ('Sector 2', s2_df), ('Sector 3', s3_df)]
-    fig.suptitle(f"FASTEST SECTOR TIMES IN {session.event.year} {session.event.EventName} {session.name}".upper(), 
-                 fontsize=20, fontweight='bold', color='white', y=0.90)
+    fig.suptitle(f"FASTEST SECTOR TIMES IN {session.event.year} {session.event.EventName} {session.name}".upper(),
+                 fontsize=20, fontweight='bold', color='black', y=0.90)
 
     for i, (title, df) in enumerate(sectors):
         ax = axes[i]
-        ax.set_facecolor('black')
-        ax.set_title(title, fontsize=18, color='white', pad=20, fontweight='bold')
+        ax.set_facecolor('white')
+        ax.set_title(title, fontsize=18, color='black', pad=20, fontweight='bold')
         ax.axis('off')
         
         top_n = min(len(df), 20)
@@ -184,8 +180,8 @@ def plot_sector_ranking(session):
             # Time Text
             time_str = f"{real_time:.3f}s"
             text_x = bar_start_x + visual_width + 0.05
-            ax.text(text_x, y_pos, time_str, 
-                    fontsize=13, fontweight='bold', color='white', ha='left', va='center')
+            ax.text(text_x, y_pos, time_str,
+                    fontsize=13, fontweight='bold', color='black', ha='left', va='center')
 
         ax.set_xlim(0, bar_start_x + max_visual_width + 0.8) 
         ax.set_ylim(0, 22)
@@ -194,8 +190,7 @@ def plot_sector_ranking(session):
     plt.subplots_adjust(top=0.75)
     
     filename = make_filename(session, suffix='SectorRanks')
-    save_figure(fig, filename, facecolor='black', show=False)
-    plt.style.use('default')
+    save_figure(fig, filename, facecolor='white', show=False)
 
 # ==========================================
 # 3. Telemetry Metrics (Top Speed & Throttle) - Separate & Zoomed
@@ -275,10 +270,9 @@ def plot_telemetry_metrics(session):
         sub_df = df.sort_values(by=col_name, ascending=False).reset_index(drop=True)
         
         # --- Plotting Setup ---
-        plt.style.use('dark_background')
-        fig, ax = plt.subplots(figsize=(12, 8)) # set figure size
-        fig.patch.set_facecolor('#1e1e1e')
-        ax.set_facecolor('#1e1e1e')
+        fig, ax = plt.subplots(figsize=(12, 8))
+        fig.patch.set_facecolor('white')
+        ax.set_facecolor('white')
         
         # --- Dynamic Y-Axis Limit (Zoom In) ---
         data_min = sub_df[col_name].min()
@@ -301,14 +295,14 @@ def plot_telemetry_metrics(session):
         # --- Styling ---
         session_title = f"{session.event.year} {session.event.EventName} - {session.name}"
         full_title = f"{session_title}\n{config['title']} ({unit})"
-        
-        ax.set_title(full_title, fontsize=18, fontweight='bold', color='white', pad=20)
+
+        ax.set_title(full_title, fontsize=18, fontweight='bold', color='black', pad=20)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_color('white')
-        ax.tick_params(axis='x', colors='white', labelsize=12, labelrotation=0)
-        ax.get_yaxis().set_visible(False) # hide y-axis
+        ax.spines['bottom'].set_color('black')
+        ax.tick_params(axis='x', colors='black', labelsize=12, labelrotation=0)
+        ax.get_yaxis().set_visible(False)
 
         # --- Annotations (Values on Top) ---
         for bar in bars:
@@ -317,19 +311,17 @@ def plot_telemetry_metrics(session):
                 label = f"{height:.1f}"
             else:
                 label = f"{int(height)}"
-            
-            # text location
-            ax.text(bar.get_x() + bar.get_width()/2., 
+
+            ax.text(bar.get_x() + bar.get_width()/2.,
                     height + (ylim_top - ylim_bottom) * 0.01,
                     label,
-                    ha='center', va='bottom', 
-                    fontsize=13, fontweight='bold', color='white')
+                    ha='center', va='bottom',
+                    fontsize=13, fontweight='bold', color='black')
 
         # --- Save ---
         plt.tight_layout()
         filename = make_filename(session, suffix=config['suffix'])
-        save_figure(fig, filename, facecolor=fig.get_facecolor(), show=False)
-        plt.style.use('default')
+        save_figure(fig, filename, facecolor='white', show=False)
 
 # ==========================================
 # Main Entry Point
@@ -339,9 +331,6 @@ def analyze_all_drivers(session):
     Main function called from main.py
     Executes all analysis plots in sequence.
     """
-    plot_lap_gap_dark(session)
+    plot_lap_gap(session)
     plot_sector_ranking(session)
     plot_telemetry_metrics(session)
-    
-    print("[System] Displaying all graphs...")
-    plt.show()

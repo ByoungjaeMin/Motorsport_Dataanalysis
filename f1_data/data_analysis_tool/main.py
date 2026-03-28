@@ -1,17 +1,9 @@
 import fastf1
 import os
-import pandas
-import seaborn
 import shutil
+import difflib
 
-# `keyboard` is optional on some platforms (may require privileges on macOS).
-try:
-    import keyboard
-    KEYBOARD_AVAILABLE = True
-except Exception:
-    KEYBOARD_AVAILABLE = False
-
-from practice import practice_export 
+from practice import practice_export
 from practice import practice_downforce
 from practice import practice_laptime
 from practice import practice_dominance
@@ -22,6 +14,74 @@ if not os.path.exists('cache'):
     os.makedirs('cache')
 fastf1.Cache.enable_cache('cache')
 
+# 2-1. FastF1 진행 상태 로그 활성화
+fastf1.set_log_level('INFO')
+
+# 1-2. 허용 세션 타입 상수
+VALID_SESSION_TYPES = ['FP1', 'FP2', 'FP3', 'Q', 'SQ', 'R', 'S']
+
+def _get_valid_year() -> int | None:
+    """연도 입력 — 유효한 정수가 입력될 때까지 반복."""
+    while True:
+        year_input = input("Year (e.g. 2024): ").strip()
+        try:
+            return int(year_input)
+        except ValueError:
+            print("[Error] 숫자로 입력해 주세요 (예: 2024).")
+
+
+def _get_valid_gp(year: int) -> str | None:
+    """
+    1-1. GP 이름 검증
+    - get_event_schedule(year)로 유효 이벤트 목록 조회
+    - difflib fuzzy 매칭(n=3, cutoff=0.6)으로 후보 제안
+    - 유효 이름이 입력될 때까지 재입력 루프
+    """
+    print(f"\n[System] {year} 이벤트 일정을 불러오는 중...")
+    try:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+    except Exception as e:
+        print(f"[Error] 이벤트 일정 조회 실패: {e}")
+        return None
+
+    event_names = schedule['EventName'].tolist()
+    # 대소문자·공백 무시 비교용 정규화 맵  {normalized: original}
+    name_map = {n.lower().strip(): n for n in event_names}
+
+    print("\n[사용 가능한 Grand Prix 목록]")
+    for idx, name in enumerate(event_names, 1):
+        print(f"  {idx:2}. {name}")
+
+    while True:
+        gp_input = input("\nGrand Prix (e.g. Brazil): ").strip()
+        normalized = gp_input.lower().strip()
+
+        # 정확 매칭 (대소문자 무시)
+        if normalized in name_map:
+            return name_map[normalized]
+
+        # Fuzzy 매칭
+        close = difflib.get_close_matches(normalized, name_map.keys(), n=3, cutoff=0.6)
+        if close:
+            print(f"[Warning] '{gp_input}'을(를) 찾을 수 없습니다. 혹시 이 중 하나인가요?")
+            for c in close:
+                print(f"  → {name_map[c]}")
+        else:
+            print(f"[Warning] '{gp_input}'을(를) 찾을 수 없습니다. 위 목록에서 정확히 입력해 주세요.")
+
+
+def _get_valid_session_type() -> str:
+    """
+    1-2. 세션 타입 검증
+    - VALID_SESSION_TYPES 외 입력 시 목록 출력 후 재입력
+    """
+    while True:
+        session_input = input(f"Session {VALID_SESSION_TYPES}: ").strip().upper()
+        if session_input in VALID_SESSION_TYPES:
+            return session_input
+        print(f"[Error] '{session_input}'은(는) 유효하지 않습니다. 다음 중 하나를 입력하세요: {VALID_SESSION_TYPES}")
+
+
 def load_session_data():
     """
     Prompts user for session details and loads the FastF1 session.
@@ -29,17 +89,17 @@ def load_session_data():
     print("========================================")
     print("       F1 Grid Analysis Tool         ")
     print("========================================")
-    
-    try:
-        year_input = input("Year (e.g. 2024): ")
-        year = int(year_input)
-    except ValueError:
-        print("Invalid year format.")
+
+    year = _get_valid_year()
+    if year is None:
         return None
 
-    gp = input("Grand Prix (e.g. Brazil): ")
-    session_type = input("Session (Q, R, FP1...): ").upper()
-    
+    gp = _get_valid_gp(year)
+    if gp is None:
+        return None
+
+    session_type = _get_valid_session_type()
+
     print(f"\n[System] Loading data for {year} {gp} - {session_type}...")
     try:
         session = fastf1.get_session(year, gp, session_type)
@@ -79,14 +139,6 @@ def main():
     session = load_session_data()
     if session is None:
         return
-    print("\n[Tip] Press 'c' in the menu to clear Saved_photos.")
-    if KEYBOARD_AVAILABLE:
-        try:
-            keyboard.add_hotkey('c', clear_saved_photos)
-            print("[System] Global hotkey 'c' registered (keyboard module).")
-        except Exception as e:
-            print(f"[Warning] Could not register global hotkey: {e}")
-
     while True:
         print("\n---------------- MENU ----------------")
         print("1. Lap Delta")
@@ -122,15 +174,8 @@ def main():
         elif choice == 'q':
             print("Exiting...")
             print("Cleaning up cache...")
-            try:
-                # disable fastf1 cache and delete cache folder
-                fastf1.Cache.clear_cache('cache') 
-                # or delete entire cache folder
-                if os.path.exists('cache'):
-                    shutil.rmtree('cache')
-                    print("[System] Cache deleted successfully.")
-            except Exception as e:
-                print(f"[Warning] Could not delete cache: {e}")
+            shutil.rmtree('cache', ignore_errors=True)
+            print("[System] Cache deleted successfully.")
 
             print("Exiting...")
             break

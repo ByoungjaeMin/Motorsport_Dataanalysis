@@ -9,7 +9,6 @@ import os
 import warnings
 
 # --- Setup ---
-plt.style.use(['dark_background'])
 fastf1.plotting.setup_mpl(mpl_timedelta_support=True, color_scheme=None, misc_mpl_mods=True)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 pd.options.mode.chained_assignment = None 
@@ -95,15 +94,15 @@ def plot_track_dominance(session):
     print(f"\n[Dominance Analysis] Selecting Top 3 Unique Teams from the session...")
 
     # --- 1. Filter Drivers ---
-    drivers = session.drivers
+    driver_numbers = session.drivers
     valid_laps = []
 
-    for drv in drivers:
+    for drv in driver_numbers:
         try:
             lap = session.laps.pick_drivers(drv).pick_fastest()
             if pd.notna(lap['LapTime']):
                 valid_laps.append(lap)
-        except:
+        except Exception:
             continue
 
     # Sort by lap time
@@ -151,6 +150,8 @@ def plot_track_dominance(session):
     # =========================================================
     # 3. [Graph 1] Comprehensive Dashboard
     # =========================================================
+    tel_24 = tel_25 = tel_26 = None  # 사전 초기화 — NameError 방지
+
     try:
         print("\n--- 1. Generating Comprehensive Dashboard... ---")
 
@@ -169,7 +170,7 @@ def plot_track_dominance(session):
         delta_sai_nor_interpolated = np.interp(orig_distance, ref_tel_sai_nor['Distance'], delta_t_sai_nor.fillna(0))
 
         # Setup Layout
-        fig = plt.figure(figsize=(15, 20), facecolor='#1e1e1e')
+        fig = plt.figure(figsize=(15, 20), facecolor='white')
         gs = fig.add_gridspec(6, 1, height_ratios=[1.5, 1, 1, 1, 1, 1])
         ax_map = fig.add_subplot(gs[0])
         ax_speed = fig.add_subplot(gs[1])
@@ -214,7 +215,7 @@ def plot_track_dominance(session):
             s1_dist = np.interp(s1_time, tel_time, tel_dist)
             s2_dist = np.interp(s2_time, tel_time, tel_dist)
             print(f"Sector Split: {s1_dist:.0f}m, {s2_dist:.0f}m")
-        except:
+        except Exception:
             s1_dist, s2_dist = None, None
 
         # Plot Data
@@ -262,7 +263,7 @@ def plot_track_dominance(session):
         minor_ticks = np.arange(0, track_end_dist, 250)
 
         for ax in [ax_speed, ax_throttle, ax_brake, ax_gear, ax_delta]:
-            ax.set_facecolor('#1e1e1e')
+            ax.set_facecolor('white')
             ax.set_xticks(major_ticks)
             ax.set_xticks(minor_ticks, minor=True)
             ax.grid(which='major', axis='x', linestyle=':', linewidth=0.5, color='#888888')
@@ -294,9 +295,9 @@ def plot_track_dominance(session):
             
             # Sector Labels
             y_pos = ax_speed.get_ylim()[1] * 0.95
-            ax_speed.text(s1_dist/2, y_pos, 'S1', ha='center', color='white', fontweight='bold')
-            ax_speed.text((s1_dist+s2_dist)/2, y_pos, 'S2', ha='center', color='white', fontweight='bold')
-            ax_speed.text((s2_dist+track_end_dist)/2, y_pos, 'S3', ha='center', color='white', fontweight='bold')
+            ax_speed.text(s1_dist/2, y_pos, 'S1', ha='center', color='black', fontweight='bold')
+            ax_speed.text((s1_dist+s2_dist)/2, y_pos, 'S2', ha='center', color='black', fontweight='bold')
+            ax_speed.text((s2_dist+track_end_dist)/2, y_pos, 'S3', ha='center', color='black', fontweight='bold')
 
         # [MODIFIED] Save Dashboard (show=False)
         filename_dash = f"{session.event.year}_{event_name.replace(' ','_')}_Dashboard.png"
@@ -310,6 +311,10 @@ def plot_track_dominance(session):
     # 4. Calculate Data for Secondary Charts
     # =========================================================
     try:
+        if tel_24 is None or tel_25 is None or tel_26 is None:
+            print("[Error] Telemetry data unavailable — secondary charts skipped.")
+            return
+
         # Top Speed
         max_speed_24 = tel_24['Speed'].max()
         max_speed_25 = tel_25['Speed'].max()
@@ -340,13 +345,13 @@ def plot_track_dominance(session):
     # 5. [Graph 2] Top Speed Comparison
     # =========================================================
     try:
-        drivers = [bestlap_24.Driver, bestlap_25.Driver, bestlap_26.Driver]
+        top_drivers = [bestlap_24.Driver, bestlap_25.Driver, bestlap_26.Driver]
         speeds = [max_speed_24, max_speed_25, max_speed_26]
         colors = [color_24, color_25, color_26]
 
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor='#1e1e1e')
-        ax.set_facecolor('#1e1e1e')
-        bars = ax.bar(drivers, speeds, color=colors)
+        fig, ax = plt.subplots(figsize=(10, 6), facecolor='white')
+        ax.set_facecolor('white')
+        bars = ax.bar(top_drivers, speeds, color=colors)
         ax.set_title('Top Speed Comparison (Fastest Lap)', fontsize=16)
         ax.set_ylabel('Top Speed (km/h)')
         ax.set_ylim(min(speeds)*0.95, max(speeds)*1.05) 
@@ -373,9 +378,9 @@ def plot_track_dominance(session):
         data_25 = df_sections[bestlap_25.Driver]
         data_26 = df_sections[bestlap_26.Driver]
 
-        fig, axes = plt.subplots(2, 2, figsize=(12, 8), facecolor='#1e1e1e')
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8), facecolor='white')
         for ax in axes.flat:
-            ax.set_facecolor('#1e1e1e')
+            ax.set_facecolor('white')
         fig.suptitle('% of Lap Time Analysis', fontsize=18)
 
         drivers_list = [bestlap_24.Driver, bestlap_25.Driver, bestlap_26.Driver]
@@ -420,8 +425,8 @@ def plot_track_dominance(session):
         colors_bottom = [color_24, color_25, color_26] 
         colors_top = ['orange', 'cyan', 'lime'] # Distinct colors for delta
 
-        fig, ax = plt.subplots(figsize=(10, 7), facecolor='#1e1e1e')
-        ax.set_facecolor('#1e1e1e')
+        fig, ax = plt.subplots(figsize=(10, 7), facecolor='white')
+        ax.set_facecolor('white')
         ax.bar(categories, drs_off_speeds, label='DRS Off', color=colors_bottom, alpha=0.7)
         ax.bar(categories, drs_deltas, bottom=drs_off_speeds, label='DRS Delta', color=colors_top)
 
@@ -442,9 +447,9 @@ def plot_track_dominance(session):
             delta_pos = off_speed + (delta / 2) if delta > 0 else off_speed
             off_pos = off_speed - 2 
 
-            ax.text(cat, on_speed + 1, f"{on_speed:.0f}", ha='center', va='bottom', fontsize=12, weight='bold', color='white')
-            ax.text(cat, delta_pos, f"[+{delta:.0f}]", ha='center', va='center', fontsize=11, color='black', fontweight='bold') 
-            ax.text(cat, off_pos, f"{off_speed:.0f}", ha='center', va='top', fontsize=11, color='white', fontweight='bold')
+            ax.text(cat, on_speed + 1, f"{on_speed:.0f}", ha='center', va='bottom', fontsize=12, weight='bold', color='black')
+            ax.text(cat, delta_pos, f"[+{delta:.0f}]", ha='center', va='center', fontsize=11, color='black', fontweight='bold')
+            ax.text(cat, off_pos, f"{off_speed:.0f}", ha='center', va='top', fontsize=11, color='black', fontweight='bold')
         plt.grid(axis='y', linestyle='--', alpha=0.3)
         
         # [MODIFIED] show=False

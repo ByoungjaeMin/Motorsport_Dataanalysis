@@ -22,17 +22,15 @@ def make_filename(session, suffix: str = '') -> str:
     return f"{base}.png"
 
 def save_figure(fig, filename: str, save_dir: str = DEFAULT_SAVE_DIR, dpi: int = 300,
-                facecolor=None, bbox_inches='tight', show: bool = True, tight_rect=None):
+                facecolor='white', bbox_inches='tight', show: bool = True, tight_rect=None):
     """Save figure to standardized directory.
 
     - `fig`: matplotlib Figure object
     - `filename`: just the file name (with .png)
-    - `facecolor`: if None, uses fig.get_facecolor()
+    - `facecolor`: background color for saved PNG (default: 'white')
     - `show`: whether to call `plt.show()` after saving. If False, closes the figure.
     """
     ensure_save_dir(save_dir)
-    if facecolor is None:
-        facecolor = fig.get_facecolor()
     try:
         if tight_rect is not None:
             fig.tight_layout(rect=tight_rect)
